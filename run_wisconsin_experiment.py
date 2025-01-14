@@ -95,10 +95,7 @@ def main():
 
     # Run experiment
     print(f"\nRunning {args.model_type} experiment...")
-    runner = ExperimentRunner(config)
-
-    # Set the dataset directly instead of loading from file
-    runner.dataset = dataset
+    runner = ExperimentRunner(config, dataset)
 
     # Run experiment and get results
     results = runner.run()

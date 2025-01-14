@@ -1,12 +1,8 @@
-# ensemble_framework/experiments/config.py
-
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union, Tuple
 from pathlib import Path
 import json
 import time
-import numpy as np
-import pandas as pd
 
 from ..data import Dataset, load_from_csv, split_dataset
 from ..models import RepeatedNestedCV, BaggingEnsemble, GradientBoostingEnsemble
@@ -120,13 +116,26 @@ class ExperimentConfig:
 class ExperimentRunner:
     """Class to run and manage experiments"""
 
-    def __init__(self, config: ExperimentConfig):
+    def __init__(self, config: ExperimentConfig, dataset=None, train_dataset=None, test_dataset=None):
         self.config = config
-        self.dataset: Optional[Dataset] = None
-        self.train_dataset: Optional[Dataset] = None
-        self.test_dataset: Optional[Dataset] = None
         self.model = None
         self.results = {}
+
+        if dataset is not None:
+            # Single dataset provided - split it now
+            self.train_dataset, self.test_dataset = split_dataset(
+                dataset,
+                test_size=0.2,  # you might want this as a config parameter
+                random_state=42  # and this too
+            )
+            self.dataset = dataset  # keep original if needed
+        elif train_dataset is not None and test_dataset is not None:
+            # Pre-split datasets provided
+            self.dataset = None
+            self.train_dataset = train_dataset
+            self.test_dataset = test_dataset
+        else:
+            raise ValueError("Must provide either a single dataset or train/test datasets")
 
     def load_data(self) -> None:
         """Load and split dataset"""
@@ -185,6 +194,8 @@ class ExperimentRunner:
 
     def run(self) -> Dict:
         """Run complete experiment"""
+
+        # Record the start time
         start_time = time.time()
 
         # Load data if not already loaded
