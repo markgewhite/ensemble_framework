@@ -21,10 +21,10 @@ class RepeatedStratifiedGroupCV:
         self.n_repeats = n_repeats
         self.random_state = random_state
 
-    def split(self, X: np.ndarray, y: np.ndarray, groups: np.ndarray) -> List[DataSplit]:
+    def split(self, X: np.ndarray, y: np.ndarray, groups: np.ndarray):
         """Generate repeated stratified group splits"""
-        splits = []
         rng = np.random.RandomState(self.random_state)
+        splits = []
 
         for repeat in range(self.n_repeats):
             cv = StratifiedGroupKFold(
@@ -34,11 +34,19 @@ class RepeatedStratifiedGroupCV:
             )
 
             for train_idx, test_idx in cv.split(X, y, groups):
-                splits.append(DataSplit(
+                # Create DataSplit object but also yield indices for sklearn compatibility
+                split = DataSplit(
                     train_idx=train_idx,
                     test_idx=test_idx,
                     train_groups=np.unique(groups[train_idx]),
                     test_groups=np.unique(groups[test_idx])
-                ))
+                )
+                splits.append(split)
+                yield train_idx, test_idx
 
-        return splits
+        # Store splits for later access
+        self.splits_ = splits
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        """Returns the number of splitting iterations in the cross-validator"""
+        return self.n_splits * self.n_repeats

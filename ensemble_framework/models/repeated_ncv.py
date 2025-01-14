@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 from sklearn.model_selection import GridSearchCV
 from sklearn.base import clone
+from sklearn.metrics import make_scorer, recall_score
 
 from ..base.base_ensemble import BaseEnsemble
 from ..base.data_structures import RepeatedStratifiedGroupCV
@@ -14,21 +15,34 @@ class RepeatedNestedCV(BaseEnsemble):
                  n_inner_splits=2,
                  n_inner_repeats=5,
                  random_state=None,
-                 base_pipeline=None):
+                 base_pipeline=None,
+                 param_grid=None,  # Add param_grid parameter
+                 scoring='roc_auc'):
 
+        super().__init__(random_state=random_state, base_pipeline=base_pipeline)
         self.n_outer_splits = n_outer_splits
         self.n_outer_repeats = n_outer_repeats
         self.n_inner_splits = n_inner_splits
         self.n_inner_repeats = n_inner_repeats
-        self.random_state = random_state
-        self.base_pipeline = base_pipeline
+        self.param_grid = param_grid
 
-        self.models_ = []
-        self.outer_splits_ = []
+        # Define scoring metrics mapping
+        self.scoring_metrics = {
+            'roc_auc': 'roc_auc',
+            'accuracy': 'accuracy',
+            'f1': 'f1',
+            'sensitivity': make_scorer(recall_score, pos_label=1)
+        }
+        self.scoring = self.scoring_metrics.get(scoring, scoring)
+
 
     def fit(self, X: np.ndarray, y: np.ndarray, groups: np.ndarray,
             feature_names: Optional[List[str]] = None) -> 'RepeatedNestedCV':
         """Fit the repeated nested CV ensemble."""
+
+        if self.param_grid is None:
+            raise ValueError("param_grid must be specified")
+
         self.feature_names_ = feature_names or [f'feature_{i}' for i in range(X.shape[1])]
 
         # Generate outer CV splits
@@ -37,14 +51,21 @@ class RepeatedNestedCV(BaseEnsemble):
             n_repeats=self.n_outer_repeats,
             random_state=self.random_state
         )
-        self.outer_splits_ = outer_cv.split(X, y, groups)
+        # Create list to store full split information
+        self.outer_splits_ = []
 
         # For each outer split
-        for split in self.outer_splits_:
-            train_idx = split.train_idx
-            test_idx = split.test_idx
+        for train_idx, test_idx in outer_cv.split(X, y, groups):
             X_train, y_train = X[train_idx], y[train_idx]
             train_groups = groups[train_idx]
+
+            # Store the full split information
+            self.outer_splits_.append({
+                'train_idx': train_idx,
+                'test_idx': test_idx,
+                'train_groups': np.unique(groups[train_idx]),
+                'test_groups': np.unique(groups[test_idx])
+            })
 
             # Inner CV for model selection
             inner_cv = RepeatedStratifiedGroupCV(
@@ -57,7 +78,7 @@ class RepeatedNestedCV(BaseEnsemble):
             grid_search = GridSearchCV(
                 estimator=clone(self.base_pipeline),
                 param_grid=self.param_grid,
-                cv=inner_cv.split(X_train, y_train, train_groups),
+                cv=inner_cv,
                 scoring=self.scoring,
                 n_jobs=-1
             )

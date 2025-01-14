@@ -28,7 +28,8 @@ def create_wisconsin_config(args):
             'kernel': 'rbf',
             'C': 1.0,
             'probability': True
-        }
+        },
+        param_grid=None
     )
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

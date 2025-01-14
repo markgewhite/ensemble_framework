@@ -39,6 +39,7 @@ class PipelineConfig:
         "C": 1.0,
         "probability": True
     })
+    param_grid: Optional[Dict] = None
 
 
 @dataclass
@@ -166,20 +167,28 @@ class ExperimentRunner:
             **self.config.pipeline.model_params
         )
 
+        # Get appropriate param grid from config or defaults
+        param_grid = self.config.pipeline.param_grid
+        if param_grid is None:
+            from ..utils import SVM_PARAM_GRID, XGB_PARAM_GRID
+            param_grid = SVM_PARAM_GRID if self.config.pipeline.base_model == 'svc' else XGB_PARAM_GRID
+
         # Create appropriate model type
         if self.config.model.model_type == "repeated_ncv":
             self.model = RepeatedNestedCV(
                 n_outer_splits=self.config.model.n_outer_splits,
                 n_outer_repeats=self.config.model.n_outer_repeats,
                 random_state=self.config.model.random_state,
-                base_pipeline=pipeline
+                base_pipeline=pipeline,
+                param_grid=param_grid
             )
         elif self.config.model.model_type == "bagging":
             self.model = BaggingEnsemble(
                 n_estimators=self.config.model.n_estimators,
                 max_samples=self.config.model.max_samples,
                 random_state=self.config.model.random_state,
-                base_pipeline=pipeline
+                base_pipeline=pipeline,
+                param_grid=param_grid
             )
         elif self.config.model.model_type == "boosting":
             self.model = GradientBoostingEnsemble(
@@ -187,7 +196,8 @@ class ExperimentRunner:
                 learning_rate=self.config.model.learning_rate,
                 subsample=self.config.model.subsample,
                 random_state=self.config.model.random_state,
-                base_pipeline=pipeline
+                base_pipeline=pipeline,
+                param_grid=param_grid
             )
         else:
             raise ValueError(f"Unknown model type: {self.config.model.model_type}")
