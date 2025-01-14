@@ -59,14 +59,6 @@ class RepeatedNestedCV(BaseEnsemble):
             X_train, y_train = X[train_idx], y[train_idx]
             train_groups = groups[train_idx]
 
-            # Store the full split information
-            self.outer_splits_.append({
-                'train_idx': train_idx,
-                'test_idx': test_idx,
-                'train_groups': np.unique(groups[train_idx]),
-                'test_groups': np.unique(groups[test_idx])
-            })
-
             # Inner CV for model selection
             inner_cv = RepeatedStratifiedGroupCV(
                 n_splits=self.n_inner_splits,
@@ -84,11 +76,10 @@ class RepeatedNestedCV(BaseEnsemble):
             )
 
             # Fit grid search
-            grid_search.fit(X_train, y_train)
+            grid_search.fit(X_train, y_train, groups=train_groups)
 
             # Store best model and results
             self.models_.append(grid_search.best_estimator_)
-            self.cv_results_.append(grid_search.cv_results_)
             self.outer_splits_.append({
                 'train_idx': train_idx,
                 'test_idx': test_idx
@@ -101,34 +92,44 @@ class RepeatedNestedCV(BaseEnsemble):
         return self
 
     def predict(self, X):
-        """Aggregate predictions from all models in ensemble"""
-
+        """
+        Aggregate predictions from all models in ensemble using row-wise averaging
+        (ignoring models that did not predict on each sample).
+        """
         n_samples = X.shape[0]
-        y_preds = np.zeros((n_samples, len(self.models_)))
-        y_probs = np.zeros((n_samples, len(self.models_)))
+        n_models = len(self.models_)
 
-        # Get predictions from each model
+        # Prepare arrays to hold model-by-model predictions
+        # We use NaN so that "missing" predictions don't skew the average
+        y_preds = np.full((n_samples, n_models), fill_value=np.nan)
+        y_probs = np.full((n_samples, n_models), fill_value=np.nan)
+
+        # Fill in predictions/probs for each model
         for i, (model, split) in enumerate(zip(self.models_, self.outer_splits_)):
+            # 'test_idx' are the samples that this model was actually tested on
             test_mask = np.zeros(n_samples, dtype=bool)
             test_mask[split['test_idx']] = True
 
             if np.any(test_mask):
-                pred = model.predict(X[test_mask])
-                prob = model.predict_proba(X[test_mask])[:, 1]
+                X_subset = X[test_mask]
+                preds = model.predict(X_subset)
+                probs = model.predict_proba(X_subset)[:, 1]
 
-                y_preds[test_mask, i] = pred
-                y_probs[test_mask, i] = prob
+                # Store them in the y_preds / y_probs arrays
+                y_preds[test_mask, i] = preds
+                y_probs[test_mask, i] = probs
 
-        # Aggregate predictions
-        y_pred = np.zeros(n_samples)
-        y_prob = np.zeros(n_samples)
+        # Compute row-wise mean ignoring NaN values
+        with np.errstate(invalid='ignore'):
+            mean_preds = np.nanmean(y_preds, axis=1)
+            mean_probs = np.nanmean(y_probs, axis=1)
 
-        for i in range(n_samples):
-            valid_preds = y_preds[i, y_preds[i, :] != 0]
-            valid_probs = y_probs[i, y_probs[i, :] != 0]
+        # If a given sample wasn't predicted by *any* model (all NaN),
+        # np.nanmean returns NaN. You can set those to 0 or some other default.
+        mean_preds = np.where(np.isnan(mean_preds), 0, mean_preds)
+        mean_probs = np.where(np.isnan(mean_probs), 0, mean_probs)
 
-            if len(valid_preds) > 0:
-                y_pred[i] = np.round(np.mean(valid_preds))
-                y_prob[i] = np.mean(valid_probs)
+        # Convert continuous predictions into integer class labels
+        y_pred = np.round(mean_preds).astype(int)
 
-        return y_pred, y_prob
+        return y_pred, mean_probs
