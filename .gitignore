@@ -8,4 +8,6 @@ env/
 
 # Python
 __pycache__/
-
+*.egg-info/
+.installed.cfg
+*.egg
