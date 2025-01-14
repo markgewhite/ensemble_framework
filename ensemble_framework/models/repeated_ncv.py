@@ -91,45 +91,63 @@ class RepeatedNestedCV(BaseEnsemble):
 
         return self
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray, indices: np.ndarray = None):
         """
-        Aggregate predictions from all models in ensemble using row-wise averaging
-        (ignoring models that did not predict on each sample).
+        Make ensemble predictions on data.
+
+        Args:
+            X (np.ndarray): Data to predict on, shape (n_samples, n_features).
+            indices (np.ndarray, optional): Boolean mask of shape (n_samples, n_models)
+                indicating which samples each model should predict. If None, all
+                models predict for all samples (typical for entirely new data).
+
+        Returns:
+            tuple: (y_pred, y_prob)
+                y_pred: (n_samples,) final integer class labels after averaging
+                y_prob: (n_samples,) final probabilities after averaging
         """
         n_samples = X.shape[0]
         n_models = len(self.models_)
 
-        # Prepare arrays to hold model-by-model predictions
-        # We use NaN so that "missing" predictions don't skew the average
-        y_preds = np.full((n_samples, n_models), fill_value=np.nan)
-        y_probs = np.full((n_samples, n_models), fill_value=np.nan)
+        # If the user has not provided 'indices', we assume all models
+        # predict all samples (new data scenario)
+        if indices is None:
+            indices = np.ones((n_samples, n_models), dtype=bool)
 
-        # Fill in predictions/probs for each model
-        for i, (model, split) in enumerate(zip(self.models_, self.outer_splits_)):
-            # 'test_idx' are the samples that this model was actually tested on
-            test_mask = np.zeros(n_samples, dtype=bool)
-            test_mask[split['test_idx']] = True
+        # Prepare arrays to hold predictions/probs from each model
+        # We use NaN for “no prediction” so we can safely average ignoring it
+        y_preds = np.full((n_samples, n_models), np.nan, dtype=float)
+        y_probs = np.full((n_samples, n_models), np.nan, dtype=float)
 
-            if np.any(test_mask):
-                X_subset = X[test_mask]
-                preds = model.predict(X_subset)
-                probs = model.predict_proba(X_subset)[:, 1]
+        # Populate the arrays with predictions from each model
+        for i, model in enumerate(self.models_):
+            # This column in 'indices' tells us which rows
+            # the i-th model is responsible for
+            mask = indices[:, i]
+            if not np.any(mask):
+                # No samples for this model
+                continue
 
-                # Store them in the y_preds / y_probs arrays
-                y_preds[test_mask, i] = preds
-                y_probs[test_mask, i] = probs
+            # Subset the data rows for this model
+            X_sub = X[mask, :]
+            preds = model.predict(X_sub)
+            probas = model.predict_proba(X_sub)[:, 1]
 
-        # Compute row-wise mean ignoring NaN values
+            # Place them into the big arrays
+            y_preds[mask, i] = preds
+            y_probs[mask, i] = probas
+
+        # Average predictions & probabilities across models that actually predicted
         with np.errstate(invalid='ignore'):
             mean_preds = np.nanmean(y_preds, axis=1)
             mean_probs = np.nanmean(y_probs, axis=1)
 
-        # If a given sample wasn't predicted by *any* model (all NaN),
-        # np.nanmean returns NaN. You can set those to 0 or some other default.
+        # If a sample is never predicted by any model (all-NaN in that row),
+        # nanmean returns NaN. Decide how to handle it. Here we default to 0:
         mean_preds = np.where(np.isnan(mean_preds), 0, mean_preds)
         mean_probs = np.where(np.isnan(mean_probs), 0, mean_probs)
 
-        # Convert continuous predictions into integer class labels
+        # Convert continuous predictions to integer class labels
         y_pred = np.round(mean_preds).astype(int)
 
         return y_pred, mean_probs
