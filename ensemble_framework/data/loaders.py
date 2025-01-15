@@ -158,3 +158,26 @@ def split_dataset(
     )
 
     return train_dataset, test_dataset
+
+
+def assign_patient_ids(indices, start_patient_num, samples_per_patient):
+    """
+    Assign patient IDs to a group of samples, with the last patient getting any remainder.
+
+    Args:
+        indices: Array of sample indices for a specific class
+        start_patient_num: Starting patient number for this group
+        samples_per_patient: Base number of samples per patient
+    """
+    n_patients = len(indices) // samples_per_patient
+    patient_ids = np.array(['P----' for _ in indices])
+
+    for i in range(n_patients):
+        start_idx = i * samples_per_patient
+        if i == n_patients - 1:  # Last patient gets remainder
+            patient_ids[start_idx:] = f'P{start_patient_num + i:04d}'
+        else:
+            end_idx = start_idx + samples_per_patient
+            patient_ids[start_idx:end_idx] = f'P{start_patient_num + i:04d}'
+
+    return patient_ids

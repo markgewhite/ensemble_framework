@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.datasets import load_breast_cancer
 
 from .dataset import Dataset
+from .loaders import assign_patient_ids
 
 
 def load_wisconsin_data(random_state: Optional[int] = None) -> Dataset:
@@ -29,16 +30,22 @@ def load_wisconsin_data(random_state: Optional[int] = None) -> Dataset:
     n_samples = X.shape[0]
     samples_per_patient = 5
     n_patients = n_samples // samples_per_patient
-    patient_ids = np.repeat(
-        [f'P{i:03d}' for i in range(n_patients)],
-        samples_per_patient
-    )
 
-    # If there are any remaining samples, assign them to new patients
-    remaining_samples = n_samples % samples_per_patient
-    if remaining_samples > 0:
-        extra_patients = [f'P{i:03d}' for i in range(n_patients, n_patients + remaining_samples)]
-        patient_ids = np.concatenate([patient_ids, extra_patients])
+    # Get indices for each class
+    class0_idx = np.where(y == 0)[0]
+    class1_idx = np.where(y == 1)[0]
+
+    # Initialize full array
+    patient_ids = np.array(['****' for _ in range(n_samples)])
+
+    # Assign IDs for each class
+    class0_idx = np.where(y == 0)[0]
+    class1_idx = np.where(y == 1)[0]
+
+    # Assign patient IDs for each class
+    patient_ids[class0_idx] = assign_patient_ids(class0_idx, 0, samples_per_patient)
+    n_patients_class0 = len(class0_idx) // samples_per_patient
+    patient_ids[class1_idx] = assign_patient_ids(class1_idx, n_patients_class0, samples_per_patient)
 
     # If random_state is provided, shuffle the data while keeping patient samples together
     if random_state is not None:
