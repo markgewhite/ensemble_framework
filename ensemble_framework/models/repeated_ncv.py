@@ -25,6 +25,8 @@ class RepeatedNestedCV(BaseEnsemble):
         self.n_inner_splits = n_inner_splits
         self.n_inner_repeats = n_inner_repeats
         self.param_grid = param_grid
+        self.outer_splits_ = None
+        self.n_train_samples_ = None
 
         # Define scoring metrics mapping
         self.scoring_metrics = {
@@ -52,6 +54,7 @@ class RepeatedNestedCV(BaseEnsemble):
             random_state=self.random_state
         )
         # Create list to store full split information
+        self.train_n_samples_ = X.shape[0]
         self.outer_splits_ = []
 
         # For each outer split
@@ -95,24 +98,25 @@ class RepeatedNestedCV(BaseEnsemble):
         """
         Make ensemble predictions on data.
 
-        Args:
-            X (np.ndarray): Data to predict on, shape (n_samples, n_features).
-            indices (np.ndarray, optional): Boolean mask of shape (n_samples, n_models)
-                indicating which samples each model should predict. If None, all
-                models predict for all samples (typical for entirely new data).
-
-        Returns:
-            tuple: (y_pred, y_prob)
-                y_pred: (n_samples,) final integer class labels after averaging
-                y_prob: (n_samples,) final probabilities after averaging
+        If X has the same shape (number of rows) as the dataset used in fit,
+        we assume the user wants "OOF predictions" using stored test splits.
+        Otherwise, all models predict all samples.
         """
         n_samples = X.shape[0]
         n_models = len(self.models_)
 
-        # If the user has not provided 'indices', we assume all models
-        # predict all samples (new data scenario)
         if indices is None:
-            indices = np.ones((n_samples, n_models), dtype=bool)
+            # Check if we have an attribute storing the training set size
+            # and if X matches that size exactly
+            if hasattr(self, 'train_n_samples_') and n_samples == self.train_n_samples_:
+                # => OOF scenario: re-build the mask using outer_splits_
+                indices = np.zeros((n_samples, n_models), dtype=bool)
+                for i, split_dict in enumerate(self.outer_splits_):
+                    test_idx = split_dict["test_idx"]
+                    indices[test_idx, i] = True
+            else:
+                # => This must be new data or a smaller subset, so let all models predict
+                indices = np.ones((n_samples, n_models), dtype=bool)
 
         # Prepare arrays to hold predictions/probs from each model
         # We use NaN for “no prediction” so we can safely average ignoring it
