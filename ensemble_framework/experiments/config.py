@@ -234,6 +234,10 @@ class ExperimentRunner:
             self.test_dataset.patient_ids
         )
 
+        # Aggregate the ground truth to patient-level
+        train_pids, y_train_patient = self.train_dataset.aggregate_patient_labels(aggregator='max')
+        test_pids, y_test_patient = self.test_dataset.aggregate_patient_labels(aggregator='max')
+
         # Compute metrics
         self.results = {
             'train': {
@@ -243,7 +247,7 @@ class ExperimentRunner:
                     train_results['sample_level']['y_prob']
                 ),
                 'patient_level': compute_metrics(
-                    self.train_dataset.y,
+                    y_train_patient,
                     train_results['patient_level']['y_pred'],
                     train_results['patient_level']['y_prob']
                 )
@@ -255,7 +259,7 @@ class ExperimentRunner:
                     test_results['sample_level']['y_prob']
                 ),
                 'patient_level': compute_metrics(
-                    self.test_dataset.y,
+                    y_test_patient,
                     test_results['patient_level']['y_pred'],
                     test_results['patient_level']['y_prob']
                 )

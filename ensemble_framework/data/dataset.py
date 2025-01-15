@@ -98,3 +98,41 @@ class Dataset:
             'feature_names': self.feature_names,
             'metadata': self.metadata
         }
+
+    def aggregate_patient_labels(self, aggregator: str = 'max') -> tuple[np.ndarray, np.ndarray]:
+        """
+        Aggregate sample-level labels (y) into patient-level labels.
+
+        Args:
+            aggregator (str): Aggregation strategy, one of:
+                - 'max': patient label = 1 if *any* sample is 1
+                - 'mean': patient label = fraction of samples that are 1
+                - 'majority': patient label = 1 if at least half the samples are 1
+                (Add more if needed.)
+
+        Returns:
+            tuple:
+                - np.ndarray: unique patient IDs (shape: [n_patients])
+                - np.ndarray: patient-level labels (shape: [n_patients])
+        """
+        unique_pids = self.unique_patients
+        y_patient = np.zeros(len(unique_pids), dtype=float)
+
+        for i, pid in enumerate(unique_pids):
+            # Find all samples for this patient
+            mask = (self.patient_ids == pid)
+            sample_labels = self.y[mask]
+
+            if aggregator == 'max':
+                # 1 if the patient has at least one positive sample
+                y_patient[i] = np.max(sample_labels)
+            elif aggregator == 'mean':
+                # if the patient is the *proportion* of positive samples
+                y_patient[i] = np.mean(sample_labels)
+            elif aggregator == 'majority':
+                # 1 if at least half the samples are positive
+                y_patient[i] = 1 if (np.sum(sample_labels) >= (len(sample_labels) / 2)) else 0
+            else:
+                raise ValueError(f"Unknown aggregation method: {aggregator}")
+
+        return unique_pids, y_patient
