@@ -13,7 +13,7 @@ class RepeatedNestedCV(BaseEnsemble):
                  n_outer_splits=5,
                  n_outer_repeats=1,
                  n_inner_splits=2,
-                 n_inner_repeats=5,
+                 n_inner_repeats=1, #5
                  random_state=None,
                  base_pipeline=None,
                  param_grid=None,  # Add param_grid parameter
@@ -89,8 +89,7 @@ class RepeatedNestedCV(BaseEnsemble):
             })
 
             # Print best parameters for this fold
-            print(f"Best parameters for fold: {grid_search.best_params_}")
-            print(f"Best score for fold: {grid_search.best_score_:.3f}")
+            print(f"Best parameters for fold: {grid_search.best_params_}; best score : {grid_search.best_score_:.3f}")
 
         return self
 

@@ -8,7 +8,7 @@ from sklearn.svm import LinearSVC, SVC
 SVM_PARAM_GRID = {
     'classifier__kernel': ['linear', 'rbf', 'poly', 'sigmoid'],
     'classifier__C': [0.1, 0.5, 1, 5, 10, 100],
-    'classifier__gamma': ['scale', 'auto', 0.1, 0.01, 0.001],
+    'classifier__gamma': [0.1, 0.01, 0.001],
 }
 
 XGB_PARAM_GRID = {
