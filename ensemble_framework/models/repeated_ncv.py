@@ -94,6 +94,7 @@ class RepeatedNestedCV(BaseEnsemble):
 
         return self
 
+
     def predict(self, X: np.ndarray, indices: np.ndarray = None):
         """
         Make ensemble predictions on data.
@@ -155,3 +156,8 @@ class RepeatedNestedCV(BaseEnsemble):
         y_pred = np.round(mean_preds).astype(int)
 
         return y_pred, mean_probs
+
+
+    def predict_proba(self, X: np.ndarray, indices: np.ndarray = None) -> np.ndarray:
+        _, y_prob = self.predict(X, indices=indices)
+        return np.column_stack([1 - y_prob, y_prob])

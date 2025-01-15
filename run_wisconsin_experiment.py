@@ -58,6 +58,8 @@ def main():
                         help='Type of ensemble model')
 
     # General parameters
+    parser.add_argument('--n-holdout-repeats', type=int, default=10,
+                        help='Number of repeated train/test splits')
     parser.add_argument('--n-estimators', type=int, default=50,
                         help='Number of estimators')
     parser.add_argument('--random-state', type=int, default=42,

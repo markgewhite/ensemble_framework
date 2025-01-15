@@ -23,6 +23,7 @@ class ModelConfig:
     subsample: float = 1.0
 
 
+
 @dataclass
 class PipelineConfig:
     """Configuration for pipeline components"""
@@ -35,6 +36,7 @@ class PipelineConfig:
         "probability": True
     })
     param_grid: Optional[Dict] = None
+
 
 
 @dataclass
@@ -60,7 +62,10 @@ class ExperimentConfig:
     metrics: List[str] = field(default_factory=lambda: [
         "accuracy", "auc", "sensitivity", "specificity", "f1"
     ])
-    n_permutation_repeats: int = 10
+    use_holdout: bool = True
+    n_holdout_repeats: int = 10
+    n_permutation_repeats: int = 100
+
 
     def __post_init__(self):
         """Convert paths to Path objects and create output directory"""
@@ -69,6 +74,7 @@ class ExperimentConfig:
 
         # Create output directory if it doesn't exist
         self.output_dir.mkdir(parents=True, exist_ok=True)
+
 
     def save(self, filepath: Union[str, Path]):
         """Save configuration to file"""
@@ -91,6 +97,7 @@ class ExperimentConfig:
         # Save to file
         with open(filepath, 'w') as f:
             json.dump(config_dict, f, indent=4)
+
 
     @classmethod
     def load(cls, filepath: Union[str, Path]) -> 'ExperimentConfig':
