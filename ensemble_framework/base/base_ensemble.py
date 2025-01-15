@@ -10,6 +10,7 @@ from sklearn.pipeline import Pipeline
 
 class BaseEnsemble(BaseEstimator, ClassifierMixin):
     """Base class for all ensemble methods"""
+    _estimator_type = "classifier"
 
     def __init__(self, random_state: Optional[int] = None, base_pipeline: Optional[Pipeline] = None):
         self.random_state = random_state

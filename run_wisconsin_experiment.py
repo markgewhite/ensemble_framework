@@ -123,10 +123,10 @@ def main():
     print(f"\nRuntime: {results['runtime']:.2f} seconds")
 
     # Print top features if feature selection was enabled
-    if args.feature_selection:
-        print("\nTop 10 features by importance:")
-        importance_df = results['feature_importance']
-        print(importance_df.head(10)[['feature_name', 'selection_rate', 'importance_mean']])
+    #if args.feature_selection:
+    #    print("\nTop 10 features by importance:")
+    #    importance_df = results['feature_importance']
+    #    print(importance_df.head(10)[['feature_name', 'selection_rate', 'importance_mean']])
 
 
 if __name__ == "__main__":

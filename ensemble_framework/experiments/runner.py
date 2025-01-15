@@ -152,11 +152,11 @@ class ExperimentRunner:
         )
 
         # 6) Feature importance etc.
-        fi = self.model.feature_importance(
-            self.dataset.X,
-            self.dataset.y,
-            n_repeats=self.config.n_permutation_repeats
-        )
+        #fi = self.model.feature_importance(
+        #    self.dataset.X,
+        #    self.dataset.y,
+        #    n_repeats=self.config.n_permutation_repeats
+        #)
 
         # 7) Package up results
         final_results = {
@@ -261,11 +261,11 @@ class ExperimentRunner:
                 test_metrics_patient_level[m].append(v)
 
             # 6) Feature importance (optional)
-            fi = self.model.feature_importance(
-                test_ds.X, test_ds.y,
-                n_repeats=self.config.n_permutation_repeats
-            )
-            fi_list.append(fi)
+            #fi = self.model.feature_importance(
+            #    test_ds.X, test_ds.y,
+            #    n_repeats=self.config.n_permutation_repeats
+            #)
+            #fi_list.append(fi)
 
         # Now we have repeated runs. Let's average metrics.
         # e.g. 'accuracy' across 10 runs
