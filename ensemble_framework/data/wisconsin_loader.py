@@ -28,7 +28,7 @@ def load_wisconsin_data(random_state: Optional[int] = None) -> Dataset:
 
     # Create simulated patient IDs (5 samples per patient)
     n_samples = X.shape[0]
-    samples_per_patient = 5
+    samples_per_patient = 3
     n_patients = n_samples // samples_per_patient
 
     # Get indices for each class
