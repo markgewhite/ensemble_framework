@@ -3,7 +3,7 @@ from pathlib import Path
 from datetime import datetime
 
 from ensemble_framework.data.wisconsin_loader import load_wisconsin_data
-from ensemble_framework.experiments.config import (
+from ensemble_framework.experiments import (
     ExperimentConfig, ModelConfig, PipelineConfig, ExperimentRunner
 )
 

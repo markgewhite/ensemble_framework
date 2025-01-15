@@ -1,9 +1,8 @@
 import argparse
 from pathlib import Path
-import json
 from datetime import datetime
 
-from ensemble_framework.experiments.config import (
+from ensemble_framework.experiments import (
     ExperimentConfig, ModelConfig, PipelineConfig, ExperimentRunner
 )
 
