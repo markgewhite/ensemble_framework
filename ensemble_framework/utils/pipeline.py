@@ -46,6 +46,11 @@ def get_default_param_grid(model_type: str) -> Dict:
         raise ValueError(f"Unknown model type: {model_type}")
 
 
+def filter_params(params: Dict, valid_params: list) -> Dict:
+    """Filter parameters to only include those valid for the model"""
+    return {k: v for k, v in params.items() if k in valid_params}
+
+
 def create_pipeline(model_type: str = 'svc',
                    include_feature_selection: bool = True,
                    include_scaling: bool = True,
@@ -79,17 +84,26 @@ def create_pipeline(model_type: str = 'svc',
                                                 max_iter=10000,
                                                 random_state=42))))
 
-    # Configure final estimator
+    # Configure final estimator with model-specific parameters
     if model_type == 'svc':
-        model = SVC(probability=True, max_iter=10000, random_state=42)
+        model = SVC(max_iter=10000, random_state=42)
+        # Set default probability=True for SVC
+        model_params['probability'] = model_params.get('probability', True)
+        valid_params = ['C', 'kernel', 'degree', 'gamma', 'coef0', 'probability',
+                        'shrinking', 'tol', 'cache_size', 'class_weight', 'verbose',
+                        'max_iter', 'decision_function_shape', 'break_ties', 'random_state']
         step_name = 'classifier'
     elif model_type == 'svr':
         model = SVR(max_iter=10000)
+        valid_params = ['C', 'kernel', 'degree', 'gamma', 'coef0', 'tol', 'epsilon',
+                        'shrinking', 'cache_size', 'verbose', 'max_iter']
         step_name = 'regressor'
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
-    model.set_params(**model_params)
+    # Filter and set valid parameters for the specific model type
+    filtered_params = filter_params(model_params, valid_params)
+    model.set_params(**filtered_params)
     steps.append((step_name, model))
 
     return Pipeline(steps)

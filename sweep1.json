@@ -1,9 +1,9 @@
 {
     "parameter_ranges": {
-        "model.n_outer_repeats": [1, 2, 5, 10]
+        "model.n_outer_repeats": [1, 2, 5, 10, 50]
     },
     "fixed_parameters": {
         "dataset.name": "wisconsin",
-        "model-type": "repeat_ncv"
+        "model.model_type": "repeated_ncv"
     }
 }
