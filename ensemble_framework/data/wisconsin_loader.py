@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional
 import numpy as np
 from sklearn.datasets import load_breast_cancer
 

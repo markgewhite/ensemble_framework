@@ -4,8 +4,9 @@ from itertools import product
 import json
 from pathlib import Path
 import pandas as pd
-import numpy as np
+
 from ..data import registry as dataset_registry
+from ..experiments import ExperimentRunner
 
 
 @dataclass
