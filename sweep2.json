@@ -1,0 +1,8 @@
+{
+    "parameter_ranges": {
+        "model.model_type": ["bagging", "boosting", "repeat_ncv"]
+    },
+    "fixed_parameters": {
+        "dataset.name": "wisconsin"
+    }
+}
