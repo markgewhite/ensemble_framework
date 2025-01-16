@@ -18,6 +18,7 @@ class BaggingEnsemble(BaseEnsemble):
         self.n_estimators = n_estimators
         self.max_samples = max_samples
 
+
     def fit(self, X: np.ndarray, y: np.ndarray, groups: Optional[np.ndarray] = None,
             feature_names: Optional[List[str]] = None) -> 'BaggingEnsemble':
         """Fit the bagging ensemble."""
@@ -45,8 +46,18 @@ class BaggingEnsemble(BaseEnsemble):
 
         return self
 
+
     def predict(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Make predictions using the bagging ensemble."""
+        """Make predictions using the bagging ensemble.
+
+        Args:
+            X: Input features of shape (n_samples, n_features)
+
+        Returns:
+            Tuple containing:
+            - Array of predicted class labels (0 or 1)
+            - Array of predicted probabilities for class 1
+        """
         n_samples = X.shape[0]
         predictions = np.zeros((n_samples, len(self.models_)))
         probabilities = np.zeros((n_samples, len(self.models_)))
@@ -54,4 +65,10 @@ class BaggingEnsemble(BaseEnsemble):
         # Get predictions from all models
         for i, model in enumerate(self.models_):
             predictions[:, i] = model.predict(X)
-            probabilities[:, i]
+            probabilities[:, i] = model.predict_proba(X)[:, 1]  # Probability of class 1
+
+        # Average predictions across models
+        y_prob = np.mean(probabilities, axis=1)
+        y_pred = (y_prob > 0.5).astype(int)
+
+        return y_pred, y_prob

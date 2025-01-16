@@ -58,13 +58,24 @@ class ExperimentRunner:
 
     def setup_model(self) -> None:
         """Create and configure model based on config"""
-        # Create base pipeline
-        pipeline = create_pipeline(
-            model_type=self.config.pipeline.base_model,
-            include_feature_selection=self.config.pipeline.include_feature_selection,
-            include_scaling=self.config.pipeline.include_scaling,
-            **self.config.pipeline.model_params
-        )
+
+        # For boosting, we need regression models as base estimators
+        if self.config.model.model_type == "boosting":
+            # Create regression pipeline
+            pipeline = create_pipeline(
+                model_type='svr' if self.config.pipeline.base_model == 'svc' else 'xgb_regressor',
+                include_feature_selection=self.config.pipeline.include_feature_selection,
+                include_scaling=self.config.pipeline.include_scaling,
+                **self.config.pipeline.model_params
+            )
+        else:
+            # For other models (bagging, repeated_ncv), use classification pipeline
+            pipeline = create_pipeline(
+                model_type=self.config.pipeline.base_model,
+                include_feature_selection=self.config.pipeline.include_feature_selection,
+                include_scaling=self.config.pipeline.include_scaling,
+                **self.config.pipeline.model_params
+            )
 
         # Get appropriate param grid from config or defaults
         param_grid = self.config.pipeline.param_grid
@@ -86,8 +97,7 @@ class ExperimentRunner:
                 n_estimators=self.config.model.n_estimators,
                 max_samples=self.config.model.max_samples,
                 random_state=self.config.model.random_state,
-                base_pipeline=pipeline,
-                param_grid=param_grid
+                base_pipeline=pipeline
             )
         elif self.config.model.model_type == "boosting":
             self.model = GradientBoostingEnsemble(
@@ -95,8 +105,7 @@ class ExperimentRunner:
                 learning_rate=self.config.model.learning_rate,
                 subsample=self.config.model.subsample,
                 random_state=self.config.model.random_state,
-                base_pipeline=pipeline,
-                param_grid=param_grid
+                base_pipeline=pipeline
             )
         else:
             raise ValueError(f"Unknown model type: {self.config.model.model_type}")
