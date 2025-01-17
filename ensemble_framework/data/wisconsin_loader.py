@@ -29,7 +29,6 @@ def load_wisconsin_data(random_state: Optional[int] = None) -> Dataset:
     # Create simulated patient IDs (5 samples per patient)
     n_samples = X.shape[0]
     samples_per_patient = 3
-    n_patients = n_samples // samples_per_patient
 
     # Get indices for each class
     class0_idx = np.where(y == 0)[0]
@@ -37,10 +36,6 @@ def load_wisconsin_data(random_state: Optional[int] = None) -> Dataset:
 
     # Initialize full array
     patient_ids = np.array(['****' for _ in range(n_samples)])
-
-    # Assign IDs for each class
-    class0_idx = np.where(y == 0)[0]
-    class1_idx = np.where(y == 1)[0]
 
     # Assign patient IDs for each class
     patient_ids[class0_idx] = assign_patient_ids(class0_idx, 0, samples_per_patient)

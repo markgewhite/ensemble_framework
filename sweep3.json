@@ -1,0 +1,8 @@
+{
+    "parameter_ranges": {
+        "model.model_type": ["bagging", "boosting", "repeated_ncv"]
+    },
+    "fixed_parameters": {
+        "dataset.name": "simpreg1"
+    }
+}

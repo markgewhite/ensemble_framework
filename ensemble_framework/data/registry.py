@@ -57,11 +57,18 @@ class DatasetRegistry:
 # Create global registry instance
 registry = DatasetRegistry()
 
-# Initialize with Wisconsin dataset
+# Initialize datasets
 from .wisconsin_loader import load_wisconsin_data
 registry.register(
     name="wisconsin",
     loader_func=load_wisconsin_data,
     description="Wisconsin Breast Cancer dataset with simulated patient IDs",
     default_params={"random_state": 42}
+)
+
+from .simpreg1_loader import load_simpreg1_data
+registry.register(
+    name="simpreg1",
+    loader_func=load_simpreg1_data,
+    description="Simpreg 1 dataset of monitored pregnant women",
 )
